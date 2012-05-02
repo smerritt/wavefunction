@@ -1,0 +1,14 @@
+{
+  "author": "Sam Merritt <spam@andcheese.org>",
+  "name": "zegnatronic",
+  "description": "IRC bot",
+  "version": "0.0.1",
+  "dependencies": {
+      "irc": ">= 0.3.4",
+  },
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "*"
+  }
+}
