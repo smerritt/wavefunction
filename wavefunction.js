@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-var irc_server = process.env.Z_IRC_SERVER
-var irc_nick = process.env.Z_IRC_NICK
-var irc_channels = process.env.Z_IRC_CHANNELS.split(",")
+var irc_server = process.env.Z_IRC_SERVER;
+var irc_nick = process.env.Z_IRC_NICK;
+var irc_channels = process.env.Z_IRC_CHANNELS.split(",");
 
 irc = require("irc");
 irc_connection = new irc.Client(irc_server, irc_nick, {
@@ -59,7 +59,7 @@ bot.irc.addListener('pm', function(nick, text, message) {
 
 // Now we have a wide variety of useful (ha!) plugins.
 bot.irc.addListener('messageToMe', function(message) {
-    var echo_prefix = "echo "
+    var echo_prefix = "echo ";
     var echo_index = message.text.indexOf(echo_prefix);
     if (echo_index >= 0) {
         message.reply(message.text.substring(echo_index + echo_prefix.length,
