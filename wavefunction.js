@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
-var irc_server = process.env.Z_IRC_SERVER;
-var irc_nick = process.env.Z_IRC_NICK;
-var irc_channels = process.env.Z_IRC_CHANNELS.split(",");
+var irc_server = process.env.IRC_SERVER;
+var irc_nick = process.env.IRC_NICK;
+var irc_channels = process.env.IRC_CHANNELS.split(",");
 
-irc = require("irc");
-irc_connection = new irc.Client(irc_server, irc_nick, {
+var fs = require("fs");
+
+var irc = require("irc");
+var irc_connection = new irc.Client(irc_server, irc_nick, {
     channels: irc_channels,
     debug: true,
     floodProtection: true,
@@ -24,7 +26,7 @@ function InChannelMessage(sender_nick, to, text, raw_message) {
     this.channel = to;
     this.text = text;
     this.raw = raw_message;
-    this.bot = bot;
+    this.bot = bot;  // NB: closed over
 }
 
 InChannelMessage.prototype.reply = function(text) {
@@ -53,24 +55,16 @@ bot.irc.addListener('message#', function(nick, to, text, message) {
 });
 
 bot.irc.addListener('pm', function(nick, text, message) {
-    bot.irc.emit('messageToMe', nick, text, message);
+    bot.irc.emit('messageToMe', new PrivateMessage(nick, text, message));
 });
 
 
 // Now we have a wide variety of useful (ha!) plugins.
-bot.irc.addListener('messageToMe', function(message) {
-    var echo_prefix = "echo ";
-    var echo_index = message.text.indexOf(echo_prefix);
-    if (echo_index >= 0) {
-        message.reply(message.text.substring(echo_index + echo_prefix.length,
-                                             message.text.length));
-    }
-});
-
-bot.irc.addListener('messageToMe', function(message) {
-    var index = message.text.indexOf("exterminate yourself");
-    if (index >= 0) {
-        message.reply("EMERGENCY TEMPORAL SHIFT");
-        message.bot.irc.disconnect();
+fs.readdirSync("./plugins").forEach(function(filename) {
+    filename = "./plugins/" + filename;
+    console.log("loading plugin " + filename);
+    if (filename.match(/\.js$/)) {
+        var plugin = require(filename);
+        plugin(bot);
     }
 });
