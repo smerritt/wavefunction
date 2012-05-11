@@ -1,0 +1,23 @@
+#!/bin/sh
+
+### The IRC server that you want the bot to connect to (required)
+#
+# export IRC_SERVER="irc.example.com"
+
+
+### The bot's nick (required)
+#
+# export IRC_NICK="super-duper-bot"
+
+
+### A comma-separated list of channels for the bot to join (required)
+#
+# For channels with passwords, put them in with the channel name,
+# space-separated.
+#
+# Example: public channel #chan1, private channel #chan2 with password
+# "secretsquirrel":, public channel #chan3
+#
+# export IRC_CHANNELS="#chan1,#chan2 secretsquirrel,#chan3"
+
+./wavefunction.js
