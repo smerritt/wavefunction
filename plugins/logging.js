@@ -8,7 +8,6 @@ function ChannelLogger() {
 };
 
 ChannelLogger.prototype.log = function(nick, channel, message) {
-    console.log("Logging message");
     this.message_queue.push([new Date(), nick, channel, message]);
     if (!this.active) {
         this.active = true;
@@ -30,7 +29,6 @@ ChannelLogger.prototype.file_for_item = function(item) {
 };
 
 ChannelLogger.prototype.process_queue = function() {
-    console.log("process_queue");
     var item = this.message_queue.shift();
     var logger = this;
     this.process_one_item(item, function(err) {
@@ -48,7 +46,6 @@ ChannelLogger.prototype.process_queue = function() {
 };
 
 ChannelLogger.prototype.process_one_item = function(item, cb) {
-    console.log("process_one_item");
     var filename = this.file_for_item(item);
     var date = item[0];
     var nick = item[1];
@@ -77,18 +74,21 @@ ChannelLogger.prototype.process_one_item = function(item, cb) {
     });
 };
 
-ChannelLogger.prototype.write_buffer_to_fd = function(fd, buffer, cb) {
+ChannelLogger.prototype.write_buffer_to_fd = function(fd, buffer, cb, offset) {
+    offset = offset || 0;
+
     var logger = this;
-    fs.write(fd, buffer, 0, buffer.length, null, function(err, written, buffer) {
-        if (err) {
-            console.log(err);
-            cb(err);
-        } else {
-            // XXX handle short write
-            console.log("well that seemed to work okay");
-            cb();
-        }
-    });
+    fs.write(fd, buffer, offset, buffer.length - offset, null,
+             function(err, written, buffer) {
+                 if (err) {
+                     console.log(err);
+                     cb(err);
+                 } else if (written < (buffer.length - offset)) {
+                     logger.write_buffer_to_fd(fd, buffer, cb, offset + written);
+                 } else {
+                     cb();
+                 }
+             });
 };
 
 
