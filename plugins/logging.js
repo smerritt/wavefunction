@@ -20,8 +20,16 @@ ChannelLogger.prototype.file_for_item = function(item) {
     var channel = item[2];
 
     var year = date.getUTCFullYear();
-    var month = date.getUTCMonth();
-    var day = date.getUTCDay();
+    var month = date.getUTCMonth() + 1;  // 0-based? wtf?
+    var day = date.getUTCDate();
+
+    if (month < 10) {
+        // handy builtins for string formatting? nope!
+        month = "0" + month;
+    }
+    if (day < 10) {
+        day = "0" + day;
+    }
 
     return path.join('channel_logs',
                      channel,
