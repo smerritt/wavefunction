@@ -17,7 +17,7 @@ var irc_connection = new irc.Client(irc_server, irc_nick, {
     stripColors: true
 });
 
-var bot = {'nick': irc_nick, 'irc': irc_connection};
+var bot = {'nick': irc_nick, 'irc': irc_connection, 'channels': irc_channels};
 
 
 // represents a message in a channel

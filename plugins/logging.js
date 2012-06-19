@@ -1,6 +1,7 @@
 // Log IRC channels to files on the local filesystem
 var fs = require("fs");
 var path = require("path");
+var http = require("http");
 
 function ChannelLogger() {
     this.message_queue = [];
@@ -34,6 +35,27 @@ ChannelLogger.prototype.file_for_item = function(item) {
     return path.join('channel_logs',
                      channel,
                     '' + year + month + day + '.txt');
+};
+
+ChannelLogger.prototype.get_logs_for_channel = function(channel, cb) {
+    var logdir = path.join('channel_logs', channel);
+    fs.readdir(logdir, function(err, entries) {
+        if (err && err.code === "ENOENT") {
+            cb(null, []);
+        }
+        else if (err) {
+            cb(err, null);
+        }
+        else {
+            logs = entries.filter(function(filename) {
+                return filename.match(/^\d{8,}\.txt$/);
+            });
+            logs.sort();
+            cb(null, logs.map(function(filename) {
+                return path.join(logdir, filename);
+            }));
+        }
+    });
 };
 
 ChannelLogger.prototype.process_queue = function() {
@@ -119,9 +141,108 @@ ChannelLogger.prototype.ensure_dir_exists = function(dirname, cb) {
     });
 };
 
+// Create a pastie.
+//
+// :param contents: the text of the pastie
+// :param cb: a two-argument callback. Arguments are (error,
+// pastie-URL). Only one will be set.
+
+function create_pastie(contents, cb) {
+    var request_json = JSON.stringify({
+        'language': 'text',
+        'code': contents,
+        'private': true,
+    }) + "\n";
+
+    var request_options = {
+        'hostname': 'paste.openstack.org',
+        'method': 'POST',
+        'path': '/json/?method=pastes.newPaste',
+        'headers': {
+            'Content-Type': 'application/json',
+            'Content-Length': request_json.length},
+        'agent': false     // set Connection: close
+    };
+
+    var received_data = "";
+    var request = http.request(request_options, function(response) {
+        if (response.statusCode < 200 || response.statusCode > 299) {
+            cb("Got non-2xx status " + response.statusCode, null);
+            // don't set up listeners; we've reported the error and no
+            // longer care what's going on with this request
+            return;
+        }
+
+        response.setEncoding('utf8')
+        response.on('data', function(chunk) {
+            received_data += chunk;
+        });
+        response.on('end', function() {
+            response_obj = JSON.parse(received_data);
+            var pastie_error = response_obj.error;
+            if (pastie_error) {
+                cb(pastie_error, null);
+            }
+            else {
+                var pastie_id = response_obj.data;
+                var pastie_url = "http://paste.openstack.org/show/" + pastie_id;
+                cb(null, pastie_url);
+            }
+        });
+    });
+    request.on('error', function(e) { cb(e, null) });
+
+    request.write(request_json);
+    request.end();
+}
+
+
 module.exports = function(bot) {
     logger = new ChannelLogger();
     bot.irc.addListener('message#', function(nick, channel, text, message) {
         logger.log(nick, channel, text);
+    });
+
+    // Command: "history $CHANNEL"
+    //
+    // Makes a pastie out of the last two files' worth of the
+    // channel's logs and replies with the URL. Each file is typically
+    // a day, but there may be gaps if nobody said anything on a given
+    // day.
+    bot.irc.addListener('pm', function(nick, text, message) {
+        var words = text.split(/ +/);
+        if (words.length == 2 && words[0] == "history") {
+            var channel = words[1];
+            if (bot.channels.indexOf(channel) < 0) {
+                bot.irc.say(nick, "Unknown channel");
+                return;
+            }
+            // XXX once we have an authorization framework, use it here
+
+            logger.get_logs_for_channel(channel, function(err, logfiles) {
+                if (err) {
+                    bot.irc.say(nick, "Error getting channel logs: " + err);
+                    return;
+                }
+                var log_contents = "";
+                if (logfiles.length > 1) {
+                    // yes, yes, this blocks the reactor. the state of
+                    // async IO on Linux is so primitive that issuing
+                    // a read() call on a file always blocks the
+                    // calling process, so there's no profit in
+                    // writing this with callbacks.
+                    log_contents += fs.readFileSync(logfiles[logfiles.length - 2], "utf8");
+                }
+                log_contents += fs.readFileSync(logfiles[logfiles.length - 1], "utf8");
+                create_pastie(log_contents, function(err, url) {
+                    if (err) {
+                        bot.irc.say(nick, "Error making pastie: " + err);
+                    }
+                    else {
+                        bot.irc.say(nick, url);
+                    }
+                });
+            });
+        }
     });
 };
