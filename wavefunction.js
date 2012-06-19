@@ -17,7 +17,13 @@ var irc_connection = new irc.Client(irc_server, irc_nick, {
     stripColors: true
 });
 
-var bot = {'nick': irc_nick, 'irc': irc_connection, 'channels': irc_channels};
+var bot = {
+    'nick': irc_nick,
+    'irc': irc_connection,
+    'channels': irc_channels.map(function(channel_and_maybe_password) {
+        return channel_and_maybe_password.split(/ +/)[0];
+    })
+};
 
 
 // represents a message in a channel
