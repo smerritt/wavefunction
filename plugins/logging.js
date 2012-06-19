@@ -148,11 +148,13 @@ ChannelLogger.prototype.ensure_dir_exists = function(dirname, cb) {
 // pastie-URL). Only one will be set.
 
 function create_pastie(contents, cb) {
-    var request_json = JSON.stringify({
-        'language': 'text',
-        'code': contents,
-        'private': true,
-    }) + "\n";
+    var request_json = new Buffer(
+        JSON.stringify({
+            'language': 'text',
+            'code': contents,
+            'private': true,
+        }),
+        "utf8");
 
     var request_options = {
         'hostname': 'paste.openstack.org',
