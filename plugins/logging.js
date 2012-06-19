@@ -225,23 +225,29 @@ module.exports = function(bot) {
                     return;
                 }
                 var log_contents = "";
-                if (logfiles.length > 1) {
+                if (logfiles.length > 1)
                     // yes, yes, this blocks the reactor. the state of
                     // async IO on Linux is so primitive that issuing
                     // a read() call on a file always blocks the
                     // calling process, so there's no profit in
                     // writing this with callbacks.
                     log_contents += fs.readFileSync(logfiles[logfiles.length - 2], "utf8");
+                if (logfiles.length > 0)
+                    log_contents += fs.readFileSync(logfiles[logfiles.length - 1], "utf8");
+
+                if (log_contents.length > 0) {
+
+                    create_pastie(log_contents, function(err, url) {
+                        if (err) {
+                            bot.irc.say(nick, "Error making pastie: " + err);
+                        }
+                        else {
+                            bot.irc.say(nick, url);
+                        }
+                    });
+                } else {
+                    bot.irc.say("No history found");
                 }
-                log_contents += fs.readFileSync(logfiles[logfiles.length - 1], "utf8");
-                create_pastie(log_contents, function(err, url) {
-                    if (err) {
-                        bot.irc.say(nick, "Error making pastie: " + err);
-                    }
-                    else {
-                        bot.irc.say(nick, url);
-                    }
-                });
             });
         }
     });
