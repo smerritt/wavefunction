@@ -1,5 +1,7 @@
 // Echoes what you tell it to.
 module.exports = function(bot) {
+    bot.add_top_level_help("echo <string>: just echo <string>; nothing fancy.");
+
     bot.irc.addListener('messageToMe', function(message) {
         var echo_prefix = "echo ";
         var echo_index = message.text.indexOf(echo_prefix);

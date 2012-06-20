@@ -211,6 +211,8 @@ module.exports = function(bot) {
     // channel's logs and replies with the URL. Each file is typically
     // a day, but there may be gaps if nobody said anything on a given
     // day.
+    bot.add_top_level_help('history <channel>: get some history from <channel> in a pastie. Only available via PM.');
+
     bot.irc.addListener('pm', function(nick, text, message) {
         var words = text.split(/ +/);
         if (words.length == 2 && words[0] == "history") {

@@ -17,13 +17,71 @@ var irc_connection = new irc.Client(irc_server, irc_nick, {
     stripColors: true
 });
 
-var bot = {
-    'nick': irc_nick,
-    'irc': irc_connection,
-    'channels': irc_channels.map(function(channel_and_maybe_password) {
+// Bot class for top-level bot object (the thing that gets passed to
+// module.exports for plugins)
+function Bot(nick, irc_connection, channels) {
+    this.nick = irc_nick;
+    this.irc = irc_connection;
+    this.channels = irc_channels.map(function(channel_and_maybe_password) {
         return channel_and_maybe_password.split(/ +/)[0];
-    })
+    }),
+    this.top_level_help = [];
+    this.command_help = {};
+}
+
+// help system should be set up before anything else runs so that
+// plugins can add help text inside module.exports
+Bot.prototype.add_top_level_help = function(help_message) {
+    this.top_level_help.push(help_message);
+    this.top_level_help.sort();
 };
+
+Bot.prototype.add_command_help = function(command, help_message) {
+    this.command_help['command'] = help_message;
+}
+
+var bot = new Bot(irc_nick, irc_connection, irc_channels);
+
+bot.irc.addListener('message#', function(nick, channel, text, message) {
+    // Don't spew help into channels; it's annoying. Just tell people
+    // to PM for help.
+    if (text.indexOf(bot.nick + ":") == 0) {
+        var words = text.split(/\s+/);
+        if (words.length >= 2 && words[1] === 'help') {
+            bot.irc.say(channel, nick + ": " + "to get help, use \"/msg " +
+                        bot.nick + " help [command]");
+        }
+    }
+});
+
+bot.irc.addListener('pm', function(nick, text, message) {
+    var words = text.split(/\s+/);
+    if (words.length > 0 && words[0] === 'help') {
+
+        if (words.length == 1) {
+            bot.irc.say(nick, "Available commands:");
+            bot.top_level_help.forEach(function(m) {
+                bot.irc.say(nick, m);
+            });
+        } else if (words.length >= 2) {
+            var command = words[1];
+            var help = bot.command_help[command]
+            if (typeof(help) === "string") {
+                bot.irc.say(nick, "Help for " + command + ":");
+                bot.irc.say(nick, help);
+            } else if (typeof(help) === "undefined") {
+                bot.irc.say(nick, "No help for \"" + command + "\"");
+            } else {
+                bot.irc.say(nick, "Help for " + command + ":");
+                help.forEach(function(m) {
+                    bot.irc.say(nick, m);
+                });
+            }
+        }
+
+        bot.irc.say(nick, "End of help.");
+    }
+});
 
 
 // represents a message in a channel
