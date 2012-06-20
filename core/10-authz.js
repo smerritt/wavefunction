@@ -32,7 +32,7 @@ Authz.prototype.is_channel_admin = function(nick, channel) {
 };
 
 Authz.prototype.is_authorized = function(nick, channel, perm) {
-    if (this.is_admin(nick)) {
+    if (this.is_channel_admin(nick, channel)) {
         return true;
     }
     
