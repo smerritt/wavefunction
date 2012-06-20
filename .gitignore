@@ -1,2 +1,4 @@
 node_modules/
 channel_logs/
+braindump.json
+bot.sh

@@ -10,7 +10,7 @@
 # export IRC_NICK="super-duper-bot"
 
 
-### A comma-separated list of channels for the bot to join (required)
+### Channels for the bot to join, comma-separated (required)
 #
 # For channels with passwords, put them in with the channel name,
 # space-separated.
@@ -19,5 +19,19 @@
 # "secretsquirrel":, public channel #chan3
 #
 # export IRC_CHANNELS="#chan1,#chan2 secretsquirrel,#chan3"
+
+### Bot admins, comma-separated (optional)
+#
+# Nicks listed here have all permissions and can perform bot-admin-y
+# tasks.
+#
+# It is recommended to only put NickServ-registered nicks in this
+# list, otherwise any bozo can be a bot admin.
+#
+# If you don't have any admins, you won't be able to give anybody any
+# permissions, so any plugin that uses the permission system will
+# probably not be useful to you.
+#
+# export ADMINS="alice,bob,carol"
 
 ./wavefunction.js

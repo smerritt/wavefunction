@@ -221,7 +221,10 @@ module.exports = function(bot) {
                 bot.irc.say(nick, "Unknown channel");
                 return;
             }
-            // XXX once we have an authorization framework, use it here
+            if (!bot.authz.is_authorized(nick, channel, "history")) {
+                bot.irc.say(nick, "Permission denied: you lack the 'history' permission for " + channel);
+                return;
+            }
 
             logger.get_logs_for_channel(channel, function(err, logfiles) {
                 if (err) {
@@ -240,7 +243,6 @@ module.exports = function(bot) {
                     log_contents += fs.readFileSync(logfiles[logfiles.length - 1], "utf8");
 
                 if (log_contents.length > 0) {
-
                     create_pastie(log_contents, function(err, url) {
                         if (err) {
                             bot.irc.say(nick, "Error making pastie: " + err);
