@@ -98,6 +98,7 @@ ChannelLogger.prototype.process_one_item = function(item, cb) {
                     logger.write_buffer_to_fd(fd, 
                                               new Buffer(logline, "utf-8"),
                                               cb);
+                    fs.close(fd);
                 }
             });
         }
