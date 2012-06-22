@@ -66,7 +66,7 @@ ChannelLogger.prototype.process_queue = function() {
             console.log(err);
             // it's just logging; keep going
         }
-            
+
         if (logger.message_queue.length > 0) {
             logger.process_queue();
         } else {
@@ -81,9 +81,9 @@ ChannelLogger.prototype.process_one_item = function(item, cb) {
     var nick = item[1];
     var message = item[3];
 
-    var logline = '[' + date.toUTCString() + '] <' + nick + '> ' + 
+    var logline = '[' + date.toUTCString() + '] <' + nick + '> ' +
         message + "\n";
-        
+
     var logger = this;
 
     this.ensure_dir_exists(path.dirname(filename), function(err) {
@@ -95,7 +95,7 @@ ChannelLogger.prototype.process_one_item = function(item, cb) {
                 if (err) {
                     cb(err);
                 } else {
-                    logger.write_buffer_to_fd(fd, 
+                    logger.write_buffer_to_fd(fd,
                                               new Buffer(logline, "utf-8"),
                                               cb);
                     fs.close(fd);
@@ -202,8 +202,32 @@ function create_pastie(contents, cb) {
 
 module.exports = function(bot) {
     logger = new ChannelLogger();
-    bot.irc.addListener('message#', function(nick, channel, text, message) {
-        logger.log(nick, channel, text);
+
+    // we have to listen on 'message' here, not 'message#', because
+    // the 'message' event is emitted first.
+    //
+    // Otherwise, something like the echo plugin gets a 'message'
+    // event for "bot: echo foo", then says `bot.say(channel, "foo")`,
+    // and that fires off a selfMessage event, which we then dutifully
+    // log in the selfMessage listener.
+    //
+    // After that happens, the 'message#' event fires, and we go ahead
+    // and log the "<user> bot: echo foo" line, and our log looks like
+    // we're clairvoyant:
+    // <bot> foo
+    // <user> bot: echo foo
+    bot.irc.addListener('message', function(nick, target, text, message) {
+        if (target.match(/^#/)) {
+            logger.log(nick, target, text);
+        }
+    });
+
+    // the 'selfMessage' event isn't in the docs, so it's probably
+    // more brittle than the documented events.
+    bot.irc.addListener('selfMessage', function(target, text) {
+        if (target.match(/^#/)) {
+            logger.log(bot.nick, target, text);
+        }
     });
 
     // Command: "history $CHANNEL"

@@ -72,8 +72,8 @@ bot.irc.addListener('pm', function(nick, text, message) {
 
 
 var core_plugins = fs.readdirSync("./core").
-    filter(function(filename) { return filename.match(/\.js$/) });
-core_plugins.sort()
+    filter(function(filename) { return filename.match(/\.js$/); });
+core_plugins.sort();
 
 core_plugins.forEach(function(filename) {
     filename = "./core/" + filename;
@@ -83,11 +83,11 @@ core_plugins.forEach(function(filename) {
 
 
 // Now we have a wide variety of useful (ha!) plugins.
-fs.readdirSync("./plugins").forEach(function(filename) {
+var other_plugins = fs.readdirSync("./plugins").
+    filter(function(filename) { return filename.match(/\.js$/); });
+other_plugins.sort();
+other_plugins.forEach(function(filename) {
     filename = "./plugins/" + filename;
-    if (filename.match(/\.js$/)) {
-        console.log("loading plugin " + filename);
-        var plugin = require(filename);
-        plugin(bot);
-    }
+    console.log("loading plugin " + filename);
+    require(filename)(bot);
 });
