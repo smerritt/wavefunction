@@ -153,7 +153,7 @@ function create_pastie(contents, cb) {
         JSON.stringify({
             'language': 'text',
             'code': contents,
-            'private': true,
+            'private': true
         }),
         "utf8");
 
@@ -176,7 +176,7 @@ function create_pastie(contents, cb) {
             return;
         }
 
-        response.setEncoding('utf8')
+        response.setEncoding('utf8');
         response.on('data', function(chunk) {
             received_data += chunk;
         });
@@ -230,17 +230,17 @@ module.exports = function(bot) {
         }
     });
 
-    // Command: "history $CHANNEL"
+    // Command: "history $CHANNEL [$NDAYS=2]"
     //
-    // Makes a pastie out of the last two files' worth of the
+    // Makes a pastie out of the last $NDAYS files' worth of the
     // channel's logs and replies with the URL. Each file is typically
     // a day, but there may be gaps if nobody said anything on a given
     // day.
-    bot.add_top_level_help('history <channel>: get some history from <channel> in a pastie. Only available via PM.');
+    bot.add_top_level_help('history <channel> [<$ndays=2>]: get some history from <channel> in a pastie. Only available via PM.');
 
     bot.irc.addListener('pm', function(nick, text, message) {
         var words = text.split(/ +/);
-        if (words.length == 2 && words[0] == "history") {
+        if ((words.length == 2 || words.length == 3) && words[0] == "history") {
             var channel = words[1];
             if (bot.channels.indexOf(channel) < 0) {
                 bot.irc.say(nick, "Unknown channel");
@@ -251,21 +251,31 @@ module.exports = function(bot) {
                 return;
             }
 
+            var nlogs = parseInt(words[2] || "2", 10);
+
             logger.get_logs_for_channel(channel, function(err, logfiles) {
+                // NB: logfiles is sorted in ascending-ASCII order,
+                // which means oldest to newest.
                 if (err) {
                     bot.irc.say(nick, "Error getting channel logs: " + err);
                     return;
                 }
+
+                var logfiles_to_read = [];
+                while (logfiles.length > 0 && nlogs > 0) {
+                    logfiles_to_read.unshift(logfiles.pop())
+                    nlogs -= 1;
+                }
+
                 var log_contents = "";
-                if (logfiles.length > 1)
+                for (var i = 0; i < logfiles_to_read.length; i++) {
                     // yes, yes, this blocks the reactor. the state of
                     // async IO on Linux is so primitive that issuing
                     // a read() call on a file always blocks the
                     // calling process, so there's no profit in
                     // writing this with callbacks.
-                    log_contents += fs.readFileSync(logfiles[logfiles.length - 2], "utf8");
-                if (logfiles.length > 0)
-                    log_contents += fs.readFileSync(logfiles[logfiles.length - 1], "utf8");
+                    log_contents += fs.readFileSync(logfiles_to_read[i], "utf8");
+                }
 
                 if (log_contents.length > 0) {
                     create_pastie(log_contents, function(err, url) {
